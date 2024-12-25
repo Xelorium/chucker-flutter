@@ -14,6 +14,7 @@ import 'package:chucker_flutter/src/view/widgets/confirmation_dialog.dart';
 import 'package:chucker_flutter/src/view/widgets/filter_buttons.dart';
 import 'package:chucker_flutter/src/view/widgets/menu_buttons.dart';
 import 'package:chucker_flutter/src/view/widgets/stats_tile.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -35,7 +36,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
 
   final _tabsHeadings = [
     _TabModel(
-      label: "All Requests",
+      label: 'All Requests',
       icon: const Icon(Icons.all_inclusive, color: Colors.white),
     ),
     _TabModel(
@@ -69,9 +70,8 @@ class _ChuckerPageState extends State<ChuckerPage> {
           Theme(
             data: ThemeData(
                 checkboxTheme: const CheckboxThemeData(
-                  side: BorderSide(color: Colors.white),
-                )
-            ),
+              side: BorderSide(color: Colors.white),
+            )),
             child: Checkbox(
               tristate: true,
               value: _selectAllCheckState(),
@@ -82,6 +82,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
           ),
           MenuButtons(
             enableDelete: _selectedApis.isNotEmpty,
+            enableExport: _selectedApis.isNotEmpty,
             onDelete: _deleteAllSelected,
             onSettings: _openSettings,
             onExport: exportAllSelected,
@@ -140,7 +141,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
                 tabs: _tabsHeadings
                     .map(
                       (e) => Tab(text: e.label, icon: e.icon),
-                )
+                    )
                     .toList(),
               ),
             ),
@@ -180,8 +181,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
     );
   }
 
-  int get _remaingRequests =>
-      ChuckerUiHelper.settings.apiThresholds - _apis.length;
+  int get _remaingRequests => ChuckerUiHelper.settings.apiThresholds - _apis.length;
 
   List<ApiResponse> _successApis({bool filterApply = true}) {
     final query = _query.toLowerCase();
@@ -234,23 +234,22 @@ class _ChuckerPageState extends State<ChuckerPage> {
     var deleteConfirm = true;
     if (ChuckerUiHelper.settings.showDeleteConfirmDialog) {
       deleteConfirm = await showConfirmationDialog(
-        context,
-        title: Localization.strings['singleDeletionTitle']!,
-        message: Localization.strings['singleDeletionMessage']!,
-        yesButtonBackColor: Colors.red,
-        yesButtonForeColor: Colors.white,
-      ) ??
+            context,
+            title: Localization.strings['singleDeletionTitle']!,
+            message: Localization.strings['singleDeletionMessage']!,
+            yesButtonBackColor: Colors.red,
+            yesButtonForeColor: Colors.white,
+          ) ??
           false;
     }
     if (deleteConfirm) {
       final sharedPreferencesManager = SharedPreferencesManager.getInstance();
       await sharedPreferencesManager.deleteAnApi(dateTime);
       setState(
-            () => _apis.removeWhere((e) => e.requestTime.toString() == dateTime),
+        () => _apis.removeWhere((e) => e.requestTime.toString() == dateTime),
       );
     }
   }
-
 
   String convertToCsv(List<List<dynamic>> rows) {
     return rows.map((row) {
@@ -264,63 +263,134 @@ class _ChuckerPageState extends State<ChuckerPage> {
     }).join('\n');
   }
 
+  //enter file name popup dialog
+  Future<String?> enterFileName(BuildContext context) async {
+    final controller = TextEditingController();
+    return showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Enter File Name'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(hintText: 'exported_apis'),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop('cancel');
+                },
+              ),
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop(controller.text);
+                },
+              )
+            ],
+          );
+        });
+  }
+
   Future<void> exportAllSelected() async {
-    final rows = <List<dynamic>>[];
+    try {
+      String fileName = await enterFileName(context) ?? 'exported_apis';
+      if (fileName.isEmpty) {
+        fileName = 'exported_apis';
+      }
+      if (fileName == 'cancel') {
+        return;
+      }
 
-    // Add the headers to the CSV
-    rows.add(['Method', 'Status Code', 'Base URL', 'Path', 'Response Time (s)']);
+      final rows = <List<dynamic>>[];
 
-    // Add the data for each selected API
-    for (var api in _selectedApis) {
-      final responseTime = api.responseTime
-          .difference(api.requestTime)
-          .inMilliseconds / 1000;
-      final statusCode = api.statusCode;
-      final baseUrl = api.baseUrl;
-      final path = api.path;
-      final method = api.method;
-      print('[$method] [$statusCode] $baseUrl$path [${responseTime}s]');
-      rows.add([method, statusCode, baseUrl, path, responseTime]);
+      // Add the headers to the CSV
+      rows.add(['Method', 'Status Code', 'Base URL', 'Path', 'Response Time (s)']);
+
+      // Add the data for each selected API
+      for (var api in _selectedApis) {
+        final responseTime = api.responseTime.difference(api.requestTime).inMilliseconds / 1000;
+        final statusCode = api.statusCode;
+        final baseUrl = api.baseUrl;
+        final path = api.path;
+        final method = api.method;
+        if (kDebugMode) {
+          print('[$method] [$statusCode] $baseUrl$path [${responseTime}s]');
+        }
+        rows.add([method, statusCode, baseUrl, path, responseTime]);
+      }
+
+      // Convert the list to CSV format
+      final csvData = convertToCsv(rows);
+
+      // Get the directory to save the file
+      final directory = await getApplicationDocumentsDirectory();
+
+      //date as id with also minute
+      final date = DateTime.now().toIso8601String().split('.').first.replaceAll(
+            ':',
+            '-',
+          );
+
+      final filePath = '${directory.path}/$fileName-$date.csv';
+
+      // Write the CSV data to the file
+      final file = File(filePath);
+      await file.writeAsString(csvData);
+
+      if (kDebugMode) {
+        print('CSV file saved at: $filePath');
+      }
+      await showResultPopUp(isSuccess: true, message: 'CSV file saved at: $filePath');
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error exporting CSV: $e\n$stackTrace');
+      }
+      await showResultPopUp(isSuccess: false, message: 'Error exporting CSV: $e\n$stackTrace');
     }
+  }
 
-    // Convert the list to CSV format
-    final csvData = convertToCsv(rows);
-
-    // Get the directory to save the file
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/selected_apis.csv';
-
-    // Write the CSV data to the file
-    final file = File(filePath);
-    await file.writeAsString(csvData);
-
-    print('CSV file saved at: $filePath');
+  Future<void> showResultPopUp({required bool isSuccess, required String message}) async {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(isSuccess ? 'Success' : 'Failed'),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          );
+        });
   }
 
   Future<void> _deleteAllSelected() async {
     var deleteConfirm = true;
     if (ChuckerUiHelper.settings.showDeleteConfirmDialog) {
       deleteConfirm = await showConfirmationDialog(
-        context,
-        title: Localization.strings['multipleDeletionTitle']!,
-        message: Localization.strings['multipleDeletionMessage']!,
-        yesButtonBackColor: Colors.red,
-        yesButtonForeColor: Colors.white,
-      ) ??
+            context,
+            title: Localization.strings['multipleDeletionTitle']!,
+            message: Localization.strings['multipleDeletionMessage']!,
+            yesButtonBackColor: Colors.red,
+            yesButtonForeColor: Colors.white,
+          ) ??
           false;
     }
     if (deleteConfirm) {
-      final dateTimes = _selectedApis
-          .where((e) => e.checked)
-          .map((e) => e.requestTime.toString())
-          .toList();
+      final dateTimes = _selectedApis.where((e) => e.checked).map((e) => e.requestTime.toString()).toList();
       final sharedPreferencesManager = SharedPreferencesManager.getInstance();
       await sharedPreferencesManager.deleteSelected(dateTimes);
       setState(
-            () =>
-            _apis.removeWhere(
-                  (e) => dateTimes.contains(e.requestTime.toString()),
-            ),
+        () => _apis.removeWhere(
+          (e) => dateTimes.contains(e.requestTime.toString()),
+        ),
       );
     }
   }
@@ -329,11 +399,8 @@ class _ChuckerPageState extends State<ChuckerPage> {
     setState(() {
       _apis = _apis
           .map(
-            (e) =>
-        e.requestTime.toString() == dateTime
-            ? e.copyWith(checked: !e.checked)
-            : e,
-      )
+            (e) => e.requestTime.toString() == dateTime ? e.copyWith(checked: !e.checked) : e,
+          )
           .toList();
     });
   }
@@ -356,11 +423,10 @@ class _ChuckerPageState extends State<ChuckerPage> {
   void _openSettings() {
     ChuckerFlutter.navigatorObserver.navigator?.push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            Theme(
-              data: ThemeData.light(useMaterial3: false),
-              child: const SettingsPage(),
-            ),
+        builder: (_) => Theme(
+          data: ThemeData.light(useMaterial3: false),
+          child: const SettingsPage(),
+        ),
       ),
     );
   }
@@ -368,11 +434,10 @@ class _ChuckerPageState extends State<ChuckerPage> {
   void _openDetails(ApiResponse api) {
     ChuckerFlutter.navigatorObserver.navigator?.push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            Theme(
-              data: ThemeData.light(useMaterial3: false),
-              child: ApiDetailsPage(api: api),
-            ),
+        builder: (_) => Theme(
+          data: ThemeData.light(useMaterial3: false),
+          child: ApiDetailsPage(api: api),
+        ),
       ),
     );
   }

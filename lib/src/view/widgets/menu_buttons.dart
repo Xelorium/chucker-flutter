@@ -6,6 +6,7 @@ class MenuButtons extends StatelessWidget {
   ///Menu items shown on chucker main page
   const MenuButtons({
     required this.enableDelete,
+    required this.enableExport,
     required this.onDelete,
     required this.onSettings,
     required this.onExport,
@@ -14,6 +15,7 @@ class MenuButtons extends StatelessWidget {
 
   ///Whether to enable delete button or not
   final bool enableDelete;
+  final bool enableExport;
 
   ///Callback when delete pressed
   final VoidCallback onDelete;
@@ -47,10 +49,11 @@ class MenuButtons extends StatelessWidget {
           key: const ValueKey('menu_settings'),
           child: Text(Localization.strings['settings']!),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 2,
-          key: ValueKey('menu_export'),
-          child: Text('EXPORT ALL'),
+          enabled: enableExport,
+          key: const ValueKey('menu_export'),
+          child: const Text('EXPORT ALL'),
         ),
       ],
     );
