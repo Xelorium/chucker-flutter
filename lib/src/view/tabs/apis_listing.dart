@@ -9,6 +9,7 @@ class ApisListingTabView extends StatefulWidget {
   const ApisListingTabView({
     required this.apis,
     required this.onDelete,
+    required this.onRefresh,
     required this.onChecked,
     required this.showDelete,
     required this.onItemPressed,
@@ -30,6 +31,8 @@ class ApisListingTabView extends StatefulWidget {
   ///Callback when this instance is pressed
   final void Function(ApiResponse api) onItemPressed;
 
+  final RefreshCallback onRefresh;
+
   @override
   State<ApisListingTabView> createState() => _ApisListingTabViewState();
 }
@@ -42,24 +45,28 @@ class _ApisListingTabViewState extends State<ApisListingTabView> {
         child: Text(Localization.strings['noApiMessage']!),
       );
     }
-    return ListView.separated(
-      itemBuilder: (_, i) {
-        final api = widget.apis[i];
-        return ApisListingItemWidget(
-          baseUrl: api.baseUrl,
-          dateTime: api.requestTime,
-          method: api.method,
-          path: api.path,
-          statusCode: api.statusCode,
-          onDelete: widget.onDelete,
-          checked: api.checked,
-          onChecked: widget.onChecked,
-          showDelete: widget.showDelete,
-          onPressed: () => widget.onItemPressed(api),
-        );
-      },
-      separatorBuilder: (_, __) => const Divider(),
-      itemCount: widget.apis.length,
+    return RefreshIndicator.adaptive(
+      onRefresh: widget.onRefresh,
+      child: ListView.separated(
+        physics: const ClampingScrollPhysics(),
+        itemBuilder: (_, i) {
+          final api = widget.apis[i];
+          return ApisListingItemWidget(
+            baseUrl: api.baseUrl,
+            dateTime: api.requestTime,
+            method: api.method,
+            path: api.path,
+            statusCode: api.statusCode,
+            onDelete: widget.onDelete,
+            checked: api.checked,
+            onChecked: widget.onChecked,
+            showDelete: widget.showDelete,
+            onPressed: () => widget.onItemPressed(api),
+          );
+        },
+        separatorBuilder: (_, __) => const Divider(),
+        itemCount: widget.apis.length,
+      ),
     );
   }
 }

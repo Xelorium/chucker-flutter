@@ -152,6 +152,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
                   ApisListingTabView(
                     key: const Key('all_tab_view'),
                     apis: _allApis(),
+                    onRefresh: _init,
                     onDelete: _deleteAnApi,
                     onChecked: _selectAnApi,
                     showDelete: _selectedApis.isEmpty,
@@ -159,6 +160,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
                   ),
                   ApisListingTabView(
                     apis: _successApis(),
+                    onRefresh: _init,
                     onDelete: _deleteAnApi,
                     onChecked: _selectAnApi,
                     showDelete: _selectedApis.isEmpty,
@@ -167,6 +169,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
                   ApisListingTabView(
                     key: const Key('fail_tab_view'),
                     apis: _failedApis(),
+                    onRefresh: _init,
                     onDelete: _deleteAnApi,
                     onChecked: _selectAnApi,
                     showDelete: _selectedApis.isEmpty,
