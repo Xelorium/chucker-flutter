@@ -16,7 +16,6 @@ import 'package:chucker_flutter/src/view/widgets/menu_buttons.dart';
 import 'package:chucker_flutter/src/view/widgets/stats_tile.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 ///The main screen of `chucker_flutter`
@@ -338,17 +337,16 @@ class _ChuckerPageState extends State<ChuckerPage> {
             '-',
           );
 
-      final filePath = '${directory.path}/${fileName}_$date.csv';
+      final filePath = '${directory.path}/$fileName-$date.csv';
 
       // Write the CSV data to the file
       final file = File(filePath);
       await file.writeAsString(csvData);
 
       if (kDebugMode) {
-        print('CSV file saved at: file://$filePath');
-        print('Folder: file://${directory.path}');
+        print('CSV file saved at: $filePath');
       }
-      await showResultPopUp(isSuccess: true, message: 'CSV file saved at: $filePath', fileLocation: filePath);
+      await showResultPopUp(isSuccess: true, message: 'CSV file saved at: $filePath');
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error exporting CSV: $e\n$stackTrace');
@@ -357,9 +355,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
     }
   }
 
-  Future<void> showResultPopUp({required bool isSuccess, required String message, String? fileLocation}) async {
-    if ((fileLocation ?? '').isEmpty) return;
-
+  Future<void> showResultPopUp({required bool isSuccess, required String message}) async {
     return showDialog(
         context: context,
         builder: (context) {
@@ -367,14 +363,6 @@ class _ChuckerPageState extends State<ChuckerPage> {
             title: Text(isSuccess ? 'Success' : 'Failed'),
             content: Text(message),
             actions: <Widget>[
-              //open folder for ios
-              if (Platform.isIOS)
-                TextButton(
-                  child: const Text('Open Folder'),
-                  onPressed: () async {
-                    await openFileOrFolder(fileLocation!);
-                  },
-                ),
               TextButton(
                 child: const Text('Ok'),
                 onPressed: () {
@@ -384,22 +372,6 @@ class _ChuckerPageState extends State<ChuckerPage> {
             ],
           );
         });
-  }
-
-  Future<void> openFileOrFolder(String filePath) async {
-    try {
-      // Use open_filex to open the file in the system's default app
-      final result = await OpenFilex.open(filePath);
-      if (result.type != ResultType.done) {
-        if (kDebugMode) {
-          print('Failed to open file: ${result.message}');
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error opening file: $e');
-      }
-    }
   }
 
   Future<void> _deleteAllSelected() async {
