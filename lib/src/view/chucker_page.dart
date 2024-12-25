@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chucker_flutter/src/helpers/shared_preferences_manager.dart';
 import 'package:chucker_flutter/src/localization/localization.dart';
 import 'package:chucker_flutter/src/models/api_response.dart';
@@ -13,6 +15,7 @@ import 'package:chucker_flutter/src/view/widgets/filter_buttons.dart';
 import 'package:chucker_flutter/src/view/widgets/menu_buttons.dart';
 import 'package:chucker_flutter/src/view/widgets/stats_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 ///The main screen of `chucker_flutter`
 class ChuckerPage extends StatefulWidget {
@@ -31,6 +34,10 @@ class _ChuckerPageState extends State<ChuckerPage> {
   var _query = '';
 
   final _tabsHeadings = [
+    _TabModel(
+      label: "All Requests",
+      icon: const Icon(Icons.all_inclusive, color: Colors.white),
+    ),
     _TabModel(
       label: Localization.strings['successRequestsWithSpace']!,
       icon: const Icon(Icons.check_circle, color: Colors.white),
@@ -61,9 +68,9 @@ class _ChuckerPageState extends State<ChuckerPage> {
         actions: [
           Theme(
             data: ThemeData(
-              checkboxTheme: const CheckboxThemeData(
-                side: BorderSide(color: Colors.white),
-              ),
+                checkboxTheme: const CheckboxThemeData(
+                  side: BorderSide(color: Colors.white),
+                )
             ),
             child: Checkbox(
               tristate: true,
@@ -77,11 +84,12 @@ class _ChuckerPageState extends State<ChuckerPage> {
             enableDelete: _selectedApis.isNotEmpty,
             onDelete: _deleteAllSelected,
             onSettings: _openSettings,
+            onExport: exportAllSelected,
           ),
         ],
       ),
       body: DefaultTabController(
-        length: 2,
+        length: 3,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -132,7 +140,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
                 tabs: _tabsHeadings
                     .map(
                       (e) => Tab(text: e.label, icon: e.icon),
-                    )
+                )
                     .toList(),
               ),
             ),
@@ -140,6 +148,14 @@ class _ChuckerPageState extends State<ChuckerPage> {
               child: TabBarView(
                 key: const Key('apis_tab_bar_view'),
                 children: [
+                  ApisListingTabView(
+                    key: const Key('all_tab_view'),
+                    apis: _allApis(),
+                    onDelete: _deleteAnApi,
+                    onChecked: _selectAnApi,
+                    showDelete: _selectedApis.isEmpty,
+                    onItemPressed: _openDetails,
+                  ),
                   ApisListingTabView(
                     apis: _successApis(),
                     onDelete: _deleteAnApi,
@@ -187,6 +203,11 @@ class _ChuckerPageState extends State<ChuckerPage> {
     }).toList();
   }
 
+  List<ApiResponse> _allApis() {
+    final query = _query.toLowerCase();
+    return _apis.toList();
+  }
+
   List<ApiResponse> _failedApis({bool filterApply = true}) {
     final query = _query.toLowerCase();
     return _apis.where((element) {
@@ -213,33 +234,79 @@ class _ChuckerPageState extends State<ChuckerPage> {
     var deleteConfirm = true;
     if (ChuckerUiHelper.settings.showDeleteConfirmDialog) {
       deleteConfirm = await showConfirmationDialog(
-            context,
-            title: Localization.strings['singleDeletionTitle']!,
-            message: Localization.strings['singleDeletionMessage']!,
-            yesButtonBackColor: Colors.red,
-            yesButtonForeColor: Colors.white,
-          ) ??
+        context,
+        title: Localization.strings['singleDeletionTitle']!,
+        message: Localization.strings['singleDeletionMessage']!,
+        yesButtonBackColor: Colors.red,
+        yesButtonForeColor: Colors.white,
+      ) ??
           false;
     }
     if (deleteConfirm) {
       final sharedPreferencesManager = SharedPreferencesManager.getInstance();
       await sharedPreferencesManager.deleteAnApi(dateTime);
       setState(
-        () => _apis.removeWhere((e) => e.requestTime.toString() == dateTime),
+            () => _apis.removeWhere((e) => e.requestTime.toString() == dateTime),
       );
     }
+  }
+
+
+  String convertToCsv(List<List<dynamic>> rows) {
+    return rows.map((row) {
+      return row.map((value) {
+        if (value is String && value.contains(',')) {
+          // Enclose values with commas in double quotes
+          return '"$value"';
+        }
+        return value.toString();
+      }).join(',');
+    }).join('\n');
+  }
+
+  Future<void> exportAllSelected() async {
+    final rows = <List<dynamic>>[];
+
+    // Add the headers to the CSV
+    rows.add(['Method', 'Status Code', 'Base URL', 'Path', 'Response Time (s)']);
+
+    // Add the data for each selected API
+    for (var api in _selectedApis) {
+      final responseTime = api.responseTime
+          .difference(api.requestTime)
+          .inMilliseconds / 1000;
+      final statusCode = api.statusCode;
+      final baseUrl = api.baseUrl;
+      final path = api.path;
+      final method = api.method;
+      print('[$method] [$statusCode] $baseUrl$path [${responseTime}s]');
+      rows.add([method, statusCode, baseUrl, path, responseTime]);
+    }
+
+    // Convert the list to CSV format
+    final csvData = convertToCsv(rows);
+
+    // Get the directory to save the file
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/selected_apis.csv';
+
+    // Write the CSV data to the file
+    final file = File(filePath);
+    await file.writeAsString(csvData);
+
+    print('CSV file saved at: $filePath');
   }
 
   Future<void> _deleteAllSelected() async {
     var deleteConfirm = true;
     if (ChuckerUiHelper.settings.showDeleteConfirmDialog) {
       deleteConfirm = await showConfirmationDialog(
-            context,
-            title: Localization.strings['multipleDeletionTitle']!,
-            message: Localization.strings['multipleDeletionMessage']!,
-            yesButtonBackColor: Colors.red,
-            yesButtonForeColor: Colors.white,
-          ) ??
+        context,
+        title: Localization.strings['multipleDeletionTitle']!,
+        message: Localization.strings['multipleDeletionMessage']!,
+        yesButtonBackColor: Colors.red,
+        yesButtonForeColor: Colors.white,
+      ) ??
           false;
     }
     if (deleteConfirm) {
@@ -250,9 +317,10 @@ class _ChuckerPageState extends State<ChuckerPage> {
       final sharedPreferencesManager = SharedPreferencesManager.getInstance();
       await sharedPreferencesManager.deleteSelected(dateTimes);
       setState(
-        () => _apis.removeWhere(
-          (e) => dateTimes.contains(e.requestTime.toString()),
-        ),
+            () =>
+            _apis.removeWhere(
+                  (e) => dateTimes.contains(e.requestTime.toString()),
+            ),
       );
     }
   }
@@ -261,10 +329,11 @@ class _ChuckerPageState extends State<ChuckerPage> {
     setState(() {
       _apis = _apis
           .map(
-            (e) => e.requestTime.toString() == dateTime
-                ? e.copyWith(checked: !e.checked)
-                : e,
-          )
+            (e) =>
+        e.requestTime.toString() == dateTime
+            ? e.copyWith(checked: !e.checked)
+            : e,
+      )
           .toList();
     });
   }
@@ -287,10 +356,11 @@ class _ChuckerPageState extends State<ChuckerPage> {
   void _openSettings() {
     ChuckerFlutter.navigatorObserver.navigator?.push(
       MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: ThemeData.light(useMaterial3: false),
-          child: const SettingsPage(),
-        ),
+        builder: (_) =>
+            Theme(
+              data: ThemeData.light(useMaterial3: false),
+              child: const SettingsPage(),
+            ),
       ),
     );
   }
@@ -298,10 +368,11 @@ class _ChuckerPageState extends State<ChuckerPage> {
   void _openDetails(ApiResponse api) {
     ChuckerFlutter.navigatorObserver.navigator?.push(
       MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: ThemeData.light(useMaterial3: false),
-          child: ApiDetailsPage(api: api),
-        ),
+        builder: (_) =>
+            Theme(
+              data: ThemeData.light(useMaterial3: false),
+              child: ApiDetailsPage(api: api),
+            ),
       ),
     );
   }
@@ -312,6 +383,7 @@ class _TabModel {
     required this.label,
     required this.icon,
   });
+
   final String label;
   final Widget icon;
 }

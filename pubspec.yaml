@@ -21,6 +21,7 @@ dependencies:
   http_mock_adapter: ^0.6.0
   share_plus: ^10.0.2
   shared_preferences: ^2.0.13
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
