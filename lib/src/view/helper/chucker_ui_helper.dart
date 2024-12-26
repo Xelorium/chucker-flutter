@@ -161,5 +161,6 @@ class ChuckerFlutter {
   ///[showChuckerScreen] navigates to the chucker home screen
   static void showChuckerScreen() => ChuckerUiHelper.showChuckerScreen();
 
+  ///[clearAllResponses] clears all the api responses saved in the disk
   static void clearAllResponses() => ChuckerUiHelper.clearAllApiResponses();
 }
