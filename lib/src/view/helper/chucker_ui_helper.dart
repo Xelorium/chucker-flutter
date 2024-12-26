@@ -90,6 +90,11 @@ ChuckerFlutter: You programmatically vetoed notification behavior. Make sure to 
     );
   }
 
+  static void clearAllApiResponses(){
+    final sharedPreferencesManager = SharedPreferencesManager.getInstance();
+    sharedPreferencesManager.deleteAllApis();
+  }
+
   static void _removeNotification() {
     for (final entry in _overlayEntries) {
       if (entry != null) {
