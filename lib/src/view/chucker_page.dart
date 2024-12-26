@@ -345,6 +345,7 @@ class _ChuckerPageState extends State<ChuckerPage> {
 
       if (kDebugMode) {
         print('CSV file saved at: $filePath');
+        print('Location of the file: file://${file.path}');
       }
       await showResultPopUp(isSuccess: true, message: 'CSV file saved at: $filePath');
     } catch (e, stackTrace) {
