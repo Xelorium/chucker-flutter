@@ -1,4 +1,4 @@
-import 'package:chopper/chopper.dart';
+/*import 'package:chopper/chopper.dart';
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:http/http.dart' as http;
 
@@ -46,4 +46,4 @@ abstract class ChopperApiService extends ChopperService {
     );
     return _$ChopperApiService(client);
   }
-}
+}*/

@@ -54,9 +54,9 @@ class _TodoPageState extends State<TodoPage> {
         }),
   );
 
-  final _chuckerHttpClient = ChuckerHttpClient(http.Client());
+  //final _chuckerHttpClient = ChuckerHttpClient(http.Client());
 
-  final _chopperApiService = ChopperApiService.create();
+  //final _chopperApiService = ChopperApiService.create();
 
   Future<void> get({bool error = false}) async {
     try {
@@ -68,10 +68,10 @@ class _TodoPageState extends State<TodoPage> {
           _dio.get('$_baseUrl$path');
           break;
         case _Client.http:
-          _chuckerHttpClient.get(Uri.parse('$_baseUrl$path'));
+          //_chuckerHttpClient.get(Uri.parse('$_baseUrl$path'));
           break;
         case _Client.chopper:
-          error ? _chopperApiService.getError() : _chopperApiService.get();
+          //error ? _chopperApiService.getError() : _chopperApiService.get();
           break;
       }
     } catch (e) {
@@ -88,10 +88,10 @@ class _TodoPageState extends State<TodoPage> {
           _dio.get('$_baseUrl$path', queryParameters: {'userId': '1'});
           break;
         case _Client.http:
-          _chuckerHttpClient.get(Uri.parse('$_baseUrl$path?userId=1'));
+          //_chuckerHttpClient.get(Uri.parse('$_baseUrl$path?userId=1'));
           break;
         case _Client.chopper:
-          _chopperApiService.getWithParams();
+          //_chopperApiService.getWithParams();
           break;
       }
     } catch (e) {
@@ -112,13 +112,10 @@ class _TodoPageState extends State<TodoPage> {
           await _dio.post('$_baseUrl$path', data: request);
           break;
         case _Client.http:
-          _chuckerHttpClient.post(
-            Uri.parse('$_baseUrl$path'),
-            body: jsonEncode(request),
-          );
+          // TODO: Handle this case.
           break;
         case _Client.chopper:
-          _chopperApiService.post(request);
+          // TODO: Handle this case.
           break;
       }
     } catch (e) {
@@ -139,10 +136,10 @@ class _TodoPageState extends State<TodoPage> {
           await _dio.put('$_baseUrl$path', data: request);
           break;
         case _Client.http:
-          _chuckerHttpClient.put(Uri.parse('$_baseUrl$path'), body: request);
+          //_chuckerHttpClient.put(Uri.parse('$_baseUrl$path'), body: request);
           break;
         case _Client.chopper:
-          _chopperApiService.put(request);
+          //_chopperApiService.put(request);
           break;
       }
     } catch (e) {
@@ -159,10 +156,10 @@ class _TodoPageState extends State<TodoPage> {
           await _dio.delete('$_baseUrl$path');
           break;
         case _Client.http:
-          _chuckerHttpClient.delete(Uri.parse('$_baseUrl$path'));
+          //_chuckerHttpClient.delete(Uri.parse('$_baseUrl$path'));
           break;
         case _Client.chopper:
-          _chopperApiService.delete();
+          //_chopperApiService.delete();
           break;
       }
     } catch (e) {
@@ -179,10 +176,10 @@ class _TodoPageState extends State<TodoPage> {
           await _dio.patch('$_baseUrl$path', data: request);
           break;
         case _Client.http:
-          _chuckerHttpClient.patch(Uri.parse('$_baseUrl$path'), body: request);
+          //_chuckerHttpClient.patch(Uri.parse('$_baseUrl$path'), body: request);
           break;
         case _Client.chopper:
-          _chopperApiService.patch(request);
+          //_chopperApiService.patch(request);
           break;
       }
     } catch (e) {
@@ -224,14 +221,14 @@ class _TodoPageState extends State<TodoPage> {
             ),
           );
 
-          _chuckerHttpClient.send(request);
+          //_chuckerHttpClient.send(request);
           break;
         case _Client.chopper:
           final a = await http.MultipartFile.fromPath(
             'source',
             'assets/logo.png',
           );
-          _chopperApiService.imageUpload(a);
+          //_chopperApiService.imageUpload(a);
           break;
       }
     } catch (e) {

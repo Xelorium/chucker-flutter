@@ -1,4 +1,4 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
+/*// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'chopper_service.dart';
 
@@ -125,4 +125,4 @@ class _$ChopperApiService extends ChopperApiService {
     );
     return client.send<dynamic, dynamic>($request);
   }
-}
+}*/

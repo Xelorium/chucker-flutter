@@ -1,4 +1,4 @@
-import 'dart:convert';
+/*import 'dart:convert';
 
 import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:chucker_flutter/src/helpers/shared_preferences_manager.dart';
@@ -165,4 +165,4 @@ class _MyChuckerHttpClient extends ChuckerHttpClient {
     statusCode = response.statusCode;
     return response;
   }
-}
+}*/

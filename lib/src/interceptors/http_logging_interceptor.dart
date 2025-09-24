@@ -1,4 +1,4 @@
-import 'dart:async';
+/*import 'dart:async';
 
 import 'package:chopper/chopper.dart';
 import 'package:chucker_flutter/src/loggers/logger.dart';
@@ -44,4 +44,4 @@ class ChuckerHttpLoggingInterceptor implements Interceptor {
     Logger.response('END ${base.method}$responseBytes');
     return response;
   }
-}
+}*/
