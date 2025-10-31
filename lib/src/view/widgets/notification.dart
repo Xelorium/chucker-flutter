@@ -48,7 +48,7 @@ class _NotificationState extends State<Notification>
   )..forward();
 
   late final Animation<Offset> _offsetAnimation = Tween<Offset>(
-    begin: const Offset(0, 1.5),
+    begin: const Offset(0, -1.5),
     end: Offset.zero,
   ).animate(
     CurvedAnimation(parent: _controller, curve: Curves.fastLinearToSlowEaseIn),
@@ -92,6 +92,7 @@ class _NotificationState extends State<Notification>
           child: Material(
             color: Colors.transparent,
             child: Container(
+              margin: const EdgeInsets.only(top: 48),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border(

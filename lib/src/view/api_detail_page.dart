@@ -1,154 +1,268 @@
 import 'package:chucker_flutter/src/helpers/extensions.dart';
 import 'package:chucker_flutter/src/localization/localization.dart';
-
 import 'package:chucker_flutter/src/models/api_response.dart';
 import 'package:chucker_flutter/src/view/helper/colors.dart';
 import 'package:chucker_flutter/src/view/json_tree/json_tree.dart';
 import 'package:chucker_flutter/src/view/tabs/overview.dart';
 import 'package:chucker_flutter/src/view/widgets/app_bar.dart';
-import 'package:chucker_flutter/src/view/widgets/sizeable_text_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-///Shows detail of api request and response
+/// Modern API Details Page with enhanced UI
 class ApiDetailsPage extends StatefulWidget {
-  ///Shows detail of api request and response
-
   const ApiDetailsPage({required this.api, Key? key}) : super(key: key);
 
-  ///[ApiResponse] of which detail is to be shown
   final ApiResponse api;
 
   @override
   State<ApiDetailsPage> createState() => _ApiDetailsPageState();
 }
 
-class _ApiDetailsPageState extends State<ApiDetailsPage> {
+class _ApiDetailsPageState extends State<ApiDetailsPage>
+    with TickerProviderStateMixin {
   var _jsonRequestPreviewType = _JsonPreviewType.tree;
   var _jsonResponsePreviewType = _JsonPreviewType.tree;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // deb('ApiDetailsPage build ${widget.api.toString()}');
     return Directionality(
       textDirection: Localization.textDirection,
       child: Scaffold(
-        appBar: ChuckerAppBar(
-          onBackPressed: () => context.navigator.pop(),
-          actions: [
-            IconButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: widget.api.toString()));
-              },
-              icon: const Icon(Icons.copy),
-            ),
-            IconButton(
-              onPressed: () {
-                SharePlus.instance.share(
-                  ShareParams(
-                    text: widget.api.toString(),
-                    sharePositionOrigin: Rect.fromLTWH(
-                      0,
-                      0,
-                      MediaQuery.of(context).size.width,
-                      MediaQuery.of(context).size.height / 2,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.share),
-            ),
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(
-                  ClipboardData(text: widget.api.toCurl()),
-                );
-              },
-              child: const Text(
-                'Copy cURL Command',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
+        backgroundColor: Colors.grey[50],
+        appBar: _buildModernAppBar(context),
         body: SafeArea(
-          child: DefaultTabController(
-            length: 3,
-            child: Column(
-              children: [
-                Material(
-                  color: primaryColor,
-                  child: TabBar(
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white.withValues(alpha: 0.8),
-                    tabs: [
-                      Tab(text: Localization.strings['overview']),
-                      Tab(text: Localization.strings['request']),
-                      Tab(text: Localization.strings['response']),
-                    ],
-                  ),
+          child: Column(
+            children: [
+              _buildModernTabBar(),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    OverviewTabView(api: widget.api),
+                    _RequestTab(
+                      jsonPreviewType: _jsonRequestPreviewType,
+                      onShufflePreview: _shuffleRequestPreviewType,
+                      json: widget.api.request,
+                      prettyJson: widget.api.prettyJsonRequest,
+                      apiResponse: widget.api,
+                    ),
+                    _ResponseTab(
+                      jsonPreviewType: _jsonResponsePreviewType,
+                      onShufflePreview: _shuffleResponsePreviewType,
+                      json: widget.api.body,
+                      prettyJson: widget.api.prettyJson,
+                      apiResponse: widget.api,
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: TabBarView(
-                    key: const Key('api_detail_tabbar_view'),
-                    children: [
-                      OverviewTabView(api: widget.api),
-                      _RequestTab(
-                        jsonPreviewType: _jsonRequestPreviewType,
-                        onShufflePreview: _shuffleRequestPreviewType,
-                        json: widget.api.request,
-                        prettyJson: widget.api.prettyJsonRequest,
-                        apiResponse: widget.api,
-                      ),
-                      _ResponseTab(
-                        jsonPreviewType: _jsonResponsePreviewType,
-                        onShufflePreview: _shuffleResponsePreviewType,
-                        json: widget.api.body,
-                        prettyJson: widget.api.prettyJson,
-                        apiResponse: widget.api,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  PreferredSizeWidget _buildModernAppBar(BuildContext context) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: primaryColor,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+        onPressed: () => context.navigator.pop(),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'API Details',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            _getStatusText(),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        _ModernActionButton(
+          icon: Icons.content_copy_rounded,
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: widget.api.toString()));
+            _showSnackBar(context, 'Copied');
+          },
+          tooltip: 'Copy',
+        ),
+        _ModernActionButton(
+          icon: Icons.share_rounded,
+          onPressed: () {
+            SharePlus.instance.share(
+              ShareParams(
+                text: widget.api.toString(),
+                sharePositionOrigin: Rect.fromLTWH(
+                  0,
+                  0,
+                  MediaQuery.of(context).size.width,
+                  MediaQuery.of(context).size.height / 2,
+                ),
+              ),
+            );
+          },
+          tooltip: 'Share',
+        ),
+        _ModernActionButton(
+          icon: Icons.terminal_rounded,
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: widget.api.toCurl()));
+            _showSnackBar(context, 'cURL command copied');
+          },
+          tooltip: 'Copy cURL',
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildModernTabBar() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        labelColor: primaryColor,
+        unselectedLabelColor: Colors.grey[600],
+        indicatorColor: primaryColor,
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        tabs: [
+          Tab(
+            icon: const Icon(Icons.dashboard_rounded, size: 20),
+            text: Localization.strings['overview'],
+          ),
+          Tab(
+            icon: const Icon(Icons.upload_rounded, size: 20),
+            text: Localization.strings['request'],
+          ),
+          Tab(
+            icon: const Icon(Icons.download_rounded, size: 20),
+            text: Localization.strings['response'],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getStatusText() {
+    final status = widget.api.statusCode;
+    if (status >= 200 && status < 300) return 'Success · $status';
+    if (status >= 400) return 'Error · $status';
+    return 'Status · $status';
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _shuffleResponsePreviewType() {
-    switch (_jsonResponsePreviewType) {
-      case _JsonPreviewType.tree:
-        setState(() => _jsonResponsePreviewType = _JsonPreviewType.text);
-        break;
-      case _JsonPreviewType.text:
-        setState(() => _jsonResponsePreviewType = _JsonPreviewType.tree);
-        break;
-    }
+    setState(() {
+      _jsonResponsePreviewType = _jsonResponsePreviewType == _JsonPreviewType.tree
+          ? _JsonPreviewType.text
+          : _JsonPreviewType.tree;
+    });
   }
 
   void _shuffleRequestPreviewType() {
-    switch (_jsonRequestPreviewType) {
-      case _JsonPreviewType.tree:
-        setState(() => _jsonRequestPreviewType = _JsonPreviewType.text);
-        break;
-      case _JsonPreviewType.text:
-        setState(() => _jsonRequestPreviewType = _JsonPreviewType.tree);
-        break;
-    }
+    setState(() {
+      _jsonRequestPreviewType = _jsonRequestPreviewType == _JsonPreviewType.tree
+          ? _JsonPreviewType.text
+          : _JsonPreviewType.tree;
+    });
   }
 }
 
-class _PreviewModeControl extends StatelessWidget {
-  const _PreviewModeControl({
+class _ModernActionButton extends StatelessWidget {
+  const _ModernActionButton({
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: UnconstrainedBox(
+        child: Container(
+          margin: const EdgeInsets.only(right: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
+            icon: Icon(icon, size: 20),
+            onPressed: onPressed,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModernPreviewControl extends StatelessWidget {
+  const _ModernPreviewControl({
     required this.jsonPreviewType,
     required this.onPreviewPressed,
     required this.onCopyPressed,
-    Key? key,
-  }) : super(key: key);
+  });
 
   final _JsonPreviewType jsonPreviewType;
   final VoidCallback onPreviewPressed;
@@ -156,45 +270,143 @@ class _PreviewModeControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final type = jsonPreviewType == _JsonPreviewType.text
-        ? Localization.strings['text']!
-        : Localization.strings['tree']!;
+    final isTreeMode = jsonPreviewType == _JsonPreviewType.tree;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                Localization.strings['jsonPreviewMode']!,
-                style: context.textTheme.bodyMedium!
-                    .toBold()
-                    .withColor(primaryColor),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.visibility_rounded,
+                    size: 18,
+                    color: primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'View Mode',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.grey[800],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              SizeableTextButton(
-                onPressed: onPreviewPressed,
-                height: 34,
-                text: type,
-                style: context.textTheme.bodyMedium!.toBold(),
+              const Spacer(),
+              Material(
+                color: primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: onCopyPressed,
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.content_copy_rounded,
+                      size: 18,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-        ),
-        Material(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ViewModeChip(
+                  label: 'Tree',
+                  isSelected: isTreeMode,
+                  onTap: isTreeMode ? null : onPreviewPressed,
+                  icon: Icons.account_tree_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ViewModeChip(
+                  label: 'Text',
+                  isSelected: !isTreeMode,
+                  onTap: !isTreeMode ? null : onPreviewPressed,
+                  icon: Icons.text_fields_rounded,
+                ),
+              ),
+            ],
           ),
-          child: InkWell(
-            key: const ValueKey('api_detail_copy'),
-            onTap: onCopyPressed,
-            borderRadius: BorderRadius.circular(24),
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.copy, color: primaryColor),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewModeChip extends StatelessWidget {
+  const _ViewModeChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.icon,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: isSelected ? primaryColor : Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 14,
+                  color: isSelected ? Colors.white : Colors.grey[700],
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.grey[700],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -206,8 +418,7 @@ class _ResponseTab extends StatelessWidget {
     required this.onShufflePreview,
     required this.json,
     required this.prettyJson,
-    Key? key,
-  }) : super(key: key);
+  });
 
   final ApiResponse apiResponse;
   final dynamic json;
@@ -217,34 +428,44 @@ class _ResponseTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: secondaryColor,
-            boxShadow: [
-              BoxShadow(
-                color: secondaryColor.withValues(alpha: 0.3),
-                spreadRadius: 2,
-                blurRadius: 7,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: _PreviewModeControl(
-            jsonPreviewType: jsonPreviewType,
-            onCopyPressed: _copyJsonResponse,
-            onPreviewPressed: onShufflePreview,
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
+    return Container(
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          Padding(
             padding: const EdgeInsets.all(16),
-            child: _renderJsonWidget(context),
+            child: _ModernPreviewControl(
+              jsonPreviewType: jsonPreviewType,
+              onCopyPressed: _copyJsonResponse,
+              onPreviewPressed: onShufflePreview,
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _buildContentCard(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: _renderJsonWidget(context),
     );
   }
 
@@ -257,13 +478,13 @@ class _ResponseTab extends StatelessWidget {
       case _JsonPreviewType.tree:
         return JsonTree(json: json);
       case _JsonPreviewType.text:
-        return SizedBox(
-          width: double.maxFinite,
-          child: SelectableText(
-            prettyJson,
-            style: context.textTheme.bodyLarge,
-            textDirection: TextDirection.ltr,
+        return SelectableText(
+          prettyJson,
+          style: context.textTheme.bodyMedium?.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 13,
           ),
+          textDirection: TextDirection.ltr,
         );
     }
   }
@@ -276,8 +497,7 @@ class _RequestTab extends StatelessWidget {
     required this.onShufflePreview,
     required this.json,
     required this.prettyJson,
-    Key? key,
-  }) : super(key: key);
+  });
 
   final ApiResponse apiResponse;
   final dynamic json;
@@ -287,34 +507,44 @@ class _RequestTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: secondaryColor,
-            boxShadow: [
-              BoxShadow(
-                color: secondaryColor.withValues(alpha: 0.3),
-                spreadRadius: 2,
-                blurRadius: 7,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: _PreviewModeControl(
-            jsonPreviewType: jsonPreviewType,
-            onCopyPressed: _copyJsonRequest,
-            onPreviewPressed: onShufflePreview,
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
+    return Container(
+      color: Colors.grey[50],
+      child: Column(
+        children: [
+          Padding(
             padding: const EdgeInsets.all(16),
-            child: _renderJsonWidget(context),
+            child: _ModernPreviewControl(
+              jsonPreviewType: jsonPreviewType,
+              onCopyPressed: _copyJsonRequest,
+              onPreviewPressed: onShufflePreview,
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _buildContentCard(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: _renderJsonWidget(context),
     );
   }
 
@@ -327,13 +557,13 @@ class _RequestTab extends StatelessWidget {
       case _JsonPreviewType.tree:
         return JsonTree(json: json);
       case _JsonPreviewType.text:
-        return SizedBox(
-          width: double.maxFinite,
-          child: SelectableText(
-            prettyJson,
-            style: context.textTheme.bodyLarge,
-            textDirection: TextDirection.ltr,
+        return SelectableText(
+          prettyJson,
+          style: context.textTheme.bodyMedium?.copyWith(
+            fontFamily: 'monospace',
+            fontSize: 13,
           ),
+          textDirection: TextDirection.ltr,
         );
     }
   }

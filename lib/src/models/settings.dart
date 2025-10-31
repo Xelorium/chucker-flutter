@@ -46,7 +46,7 @@ class Settings {
   ///Default object containing the default values for chucker settings
   factory Settings.defaultObject() => Settings(
         duration: const Duration(seconds: 2),
-        notificationAlignment: Alignment.bottomCenter,
+        notificationAlignment: Alignment.topCenter,
         apiThresholds: 100,
         httpMethod: HttpMethod.none,
         showNotification: true,
