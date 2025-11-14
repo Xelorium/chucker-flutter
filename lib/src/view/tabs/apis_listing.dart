@@ -13,6 +13,7 @@ class ApisListingTabView extends StatefulWidget {
     required this.onChecked,
     required this.showDelete,
     required this.onItemPressed,
+    required this.scrollController,
     Key? key,
   }) : super(key: key);
 
@@ -33,6 +34,8 @@ class ApisListingTabView extends StatefulWidget {
 
   final RefreshCallback onRefresh;
 
+  final ScrollController scrollController;
+
   @override
   State<ApisListingTabView> createState() => _ApisListingTabViewState();
 }
@@ -48,6 +51,7 @@ class _ApisListingTabViewState extends State<ApisListingTabView> {
     return RefreshIndicator.adaptive(
       onRefresh: widget.onRefresh,
       child: ListView.separated(
+        controller: widget.scrollController,
         physics: const ClampingScrollPhysics(),
         itemBuilder: (_, i) {
           final api = widget.apis[i];

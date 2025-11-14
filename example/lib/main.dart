@@ -4,7 +4,7 @@ import 'package:chucker_flutter/chucker_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:example/chopper/chopper_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http;
 
 void main() {
   ChuckerFlutter.showOnRelease = true;
@@ -206,30 +206,30 @@ class _TodoPageState extends State<TodoPage> {
             debugPrint(e.toString());
           }
           break;
-        case _Client.http:
-          var request = http.MultipartRequest(
-            'POST',
-            Uri.parse('https://freeimage.host/api/1/upload'),
-          );
-          request.fields.addAll(
-            {'key': '6d207e02198a847aa98d0a2a901485a5'},
-          );
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'source',
-              'assets/logo.png',
-            ),
-          );
+        // case _Client.http:
+        //   var request = http.MultipartRequest(
+        //     'POST',
+        //     Uri.parse('https://freeimage.host/api/1/upload'),
+        //   );
+        //   request.fields.addAll(
+        //     {'key': '6d207e02198a847aa98d0a2a901485a5'},
+        //   );
+        //   request.files.add(
+        //     await http.MultipartFile.fromPath(
+        //       'source',
+        //       'assets/logo.png',
+        //     ),
+        //   );
 
-          //_chuckerHttpClient.send(request);
-          break;
-        case _Client.chopper:
-          final a = await http.MultipartFile.fromPath(
-            'source',
-            'assets/logo.png',
-          );
-          //_chopperApiService.imageUpload(a);
-          break;
+        //   //_chuckerHttpClient.send(request);
+        //   break;
+        // case _Client.chopper:
+        //   final a = await http.MultipartFile.fromPath(
+        //     'source',
+        //     'assets/logo.png',
+        //   );
+        //   //_chopperApiService.imageUpload(a);
+        //   break;
       }
     } catch (e) {
       debugPrint(e.toString());

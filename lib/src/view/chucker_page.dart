@@ -68,48 +68,66 @@ class _ChuckerPageState extends State<ChuckerPage> with TickerProviderStateMixin
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildModernAppBar(context),
-      body: Column(
-        children: [
-          _buildStatsSection(),
-          const SizedBox(height: 16),
-          _buildModernFilterSection(),
-          const SizedBox(height: 16),
-          _buildModernTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              key: const Key('apis_tab_bar_view'),
-              children: [
-                ApisListingTabView(
-                  key: const Key('all_tab_view'),
-                  apis: _allApis(),
-                  onRefresh: _init,
-                  onDelete: _deleteAnApi,
-                  onChecked: _selectAnApi,
-                  showDelete: _selectedApis.isEmpty,
-                  onItemPressed: _openDetails,
+      body: DraggableScrollableSheet(
+        shouldCloseOnMinExtent: false,
+        initialChildSize: 0.925,
+        minChildSize: 0.925,
+        maxChildSize: 1,
+        expand: false,
+        builder: (_, scrollController) {
+          return Column(
+            children: [
+              _buildModernFilterSection(),
+              _ScrollAwareHeader(
+                scrollController: scrollController,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildModernTabBar(),
+                  ],
                 ),
-                ApisListingTabView(
-                  apis: _successApis(),
-                  onRefresh: _init,
-                  onDelete: _deleteAnApi,
-                  onChecked: _selectAnApi,
-                  showDelete: _selectedApis.isEmpty,
-                  onItemPressed: _openDetails,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  key: const Key('apis_tab_bar_view'),
+                  children: [
+                    ApisListingTabView(
+                      scrollController: scrollController,
+                      key: const Key('all_tab_view'),
+                      apis: _allApis(),
+                      onRefresh: _init,
+                      onDelete: _deleteAnApi,
+                      onChecked: _selectAnApi,
+                      showDelete: _selectedApis.isEmpty,
+                      onItemPressed: _openDetails,
+                    ),
+                    ApisListingTabView(
+                      scrollController: scrollController,
+                      apis: _successApis(),
+                      onRefresh: _init,
+                      onDelete: _deleteAnApi,
+                      onChecked: _selectAnApi,
+                      showDelete: _selectedApis.isEmpty,
+                      onItemPressed: _openDetails,
+                    ),
+                    ApisListingTabView(
+                      scrollController: scrollController,                      
+                      key: const Key('fail_tab_view'),
+                      apis: _failedApis(),
+                      onRefresh: _init,
+                      onDelete: _deleteAnApi,
+                      onChecked: _selectAnApi,
+                      showDelete: _selectedApis.isEmpty,
+                      onItemPressed: _openDetails,
+                    ),
+                  ],
                 ),
-                ApisListingTabView(
-                  key: const Key('fail_tab_view'),
-                  apis: _failedApis(),
-                  onRefresh: _init,
-                  onDelete: _deleteAnApi,
-                  onChecked: _selectAnApi,
-                  showDelete: _selectedApis.isEmpty,
-                  onItemPressed: _openDetails,
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -833,4 +851,53 @@ class _TabModel {
   final String label;
   final IconData icon;
   final int index;
+}
+
+class _ScrollAwareHeader extends StatefulWidget {
+  const _ScrollAwareHeader({
+    required this.scrollController,
+    required this.child,
+  });
+
+  final ScrollController scrollController;
+  final Widget child;
+
+  @override
+  State<_ScrollAwareHeader> createState() => _ScrollAwareHeaderState();
+}
+
+class _ScrollAwareHeaderState extends State<_ScrollAwareHeader> {
+  bool _isScrolled = false;
+  static const double _scrollThreshold = 10.0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final bool shouldHide = widget.scrollController.hasClients && widget.scrollController.offset > _scrollThreshold;
+    if (shouldHide != _isScrolled) {
+      setState(() {
+        _isScrolled = shouldHide;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topCenter,
+      curve: Curves.easeInOut,
+      child: _isScrolled ? const SizedBox(width: double.infinity) : widget.child,
+    );
+  }
 }
