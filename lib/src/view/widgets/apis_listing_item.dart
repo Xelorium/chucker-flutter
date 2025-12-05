@@ -99,8 +99,6 @@ class ApisListingItemWidget extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: Colors.grey[900],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
